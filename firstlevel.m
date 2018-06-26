@@ -53,27 +53,77 @@ for subj = 1 : length(e)
         
         events = {'Jitter' 'Blank' 'Picture' 'Answer'};
 
+        regressor_idx = 0;
+        
         for evt = 1:length(events)
             
             idx = regexp(data(:,1),events{evt});
             idx = ~cellfun(@isempty, idx);
             sub_data = data(idx,:);
             
-            ONSETS{subj}{run}(evt).name     = char(events{evt});
-            ONSETS{subj}{run}(evt).onset    = cell2mat(sub_data(:,2)) ;
-            ONSETS{subj}{run}(evt).duration = cell2mat(sub_data(:,3)) ;
+            if strcmp(events{evt},'Picture')
+                
+                NAMES =  {'sVSu' 'sVSk'};
+                
+                for n = 1 : length(NAMES)
+                    
+                    name = NAMES{n};
+                    
+                    sVSx_idx = regexp(sub_data(:,1),name);
+                    sVSx_idx = ~cellfun(@isempty, sVSx_idx);
+                    sVSx_data = sub_data(sVSx_idx,:);
+                    
+                    sVSx_data(:,1) = regexprep( sVSx_data(:,1) , '+', 'p' );
+                    sVSx_data(:,1) = regexprep( sVSx_data(:,1) , '-', 'm' );
+                    
+                    values = {'m20' 'm10' '0' 'p10' 'p20'};
+                    VALUES = {'-20' '-10' '0' '+10' '+20'};
+                    for val = 1 : length(values)
+                        
+                        % fetch value in condition
+                        sVSx_val_idx = regexp(sVSx_data(:,1),[name '\d_' values{val} '$']);
+                        sVSx_val_idx = ~cellfun(@isempty, sVSx_val_idx);
+                        sVSx_val_data = sVSx_data(sVSx_val_idx,:);
+                        
+                        % save onset
+                        regressor_idx = regressor_idx + 1;
+                        ONSETS{subj}{run}(regressor_idx).name     = [name(end) '_' values{val}];
+                        ONSETS{subj}{run}(regressor_idx).onset    = cell2mat(sVSx_val_data(:,2)) ;
+                        ONSETS{subj}{run}(regressor_idx).duration = cell2mat(sVSx_val_data(:,3)) ;
+                        
+                    end
+                    
+                end
+                
+            else
+                
+                regressor_idx = regressor_idx + 1;
+                ONSETS{subj}{run}(regressor_idx).name     = char(events{evt});
+                ONSETS{subj}{run}(regressor_idx).onset    = cell2mat(sub_data(:,2)) ;
+                ONSETS{subj}{run}(regressor_idx).duration = cell2mat(sub_data(:,3)) ;
+                
+            end
             
         end % evt
         
-        ONSETS{subj}{run}(evt + 1).name     = s{1}.names    {2};
-        ONSETS{subj}{run}(evt + 1).onset    = s{1}.onsets   {2};
-        ONSETS{subj}{run}(evt + 1).duration = s{1}.durations{2};
-        ONSETS{subj}{run}(evt + 2).name     = s{1}.names    {3};
-        ONSETS{subj}{run}(evt + 2).onset    = s{1}.onsets   {3};
-        ONSETS{subj}{run}(evt + 2).duration = s{1}.durations{3};
+        % Yes & No button press
+        regressor_idx = regressor_idx + 1;
+        ONSETS{subj}{run}(regressor_idx).name     = s{1}.names    {2};
+        ONSETS{subj}{run}(regressor_idx).onset    = s{1}.onsets   {2};
+        ONSETS{subj}{run}(regressor_idx).duration = s{1}.durations{2};
+        regressor_idx = regressor_idx + 1;
+        ONSETS{subj}{run}(regressor_idx).name     = s{1}.names    {3};
+        ONSETS{subj}{run}(regressor_idx).onset    = s{1}.onsets   {3};
+        ONSETS{subj}{run}(regressor_idx).duration = s{1}.durations{3};
         
     end
 end
+
+
+return
+
+%% Job define model
+
 
 par.run = 1;
 
@@ -91,42 +141,79 @@ job_first_level_estimate(fspm,par)
 
 %% Contrast : definition
 
-Jitter  = [1 0 0 0 0 0];
-Blank   = [0 1 0 0 0 0];
-Picture = [0 0 1 0 0 0];
-Answer  = [0 0 0 1 0 0];
-Yes     = [0 0 0 0 1 0];
-No      = [0 0 0 0 0 1];
+names = {ONSETS{subj}{run}.name}';
+
+Jitter  = [ 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ];
+Blank   = [ 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 ];
+u_m20   = [ 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 ];
+u_m10   = [ 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 ];
+u_0     = [ 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 ];
+u_p10   = [ 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 ];
+u_p20   = [ 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 ];
+k_m20   = [ 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 ];
+k_m10   = [ 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 ];
+k_0     = [ 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 ];
+k_p10   = [ 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 ];
+k_p20   = [ 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 ];
+Answer  = [ 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 ];
+Yes     = [ 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ];
+No      = [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 ];
 
 contrast.names = {
 
 'Jitter'
 'Blank'
-'Picture'
+'u_m20'
+'u_m10'
+'u_0'
+'u_p10'
+'u_p20'
+'k_m20'
+'k_m10'
+'k_0'
+'k_p10'
+'k_p20'
 'Answer'
 'Yes'
 'No'
 
-'Picture - Answer'
-'Answer - Picture'
+'All faces'
+
+'Unknown : increase activity with Value' 
+'Unknown : decrease activity with Value' 
+
+'Known   : increase activity with Value' 
+'Known   : decrease activity with Value' 
 
 }';
 
 contrast.values = {
+    
+Jitter
+Blank
+u_m20
+u_m10
+u_0
+u_p10
+u_p20
+k_m20
+k_m10
+k_0
+k_p10
+k_p20
+Answer
+Yes
+No
 
-    Jitter
-    Blank
-    Picture
-    Answer
-    Yes
-    No
-    
-    Yes + No
-    
-    Picture - Answer
-    Answer - Picture
-    
-    }';
+u_m20 + u_m10 + u_0 + u_p10 + u_p20  +  k_m20 + k_m10 + k_0 + k_p10 + k_p20  
+
+( -2*u_m20 -1*u_m10 +0*u_0 +1*u_p10 +2*u_p20 )
+( -2*u_p20 -1*u_p10 +0*u_0 +1*u_m10 +2*u_m20 )
+
+( -2*k_m20 -1*k_m10 +0*k_0 +1*k_p10 +2*k_p20 )
+( -2*k_p20 -1*k_p10 +0*k_0 +1*k_m10 +2*k_m20 )
+
+}';
 
 
 contrast.types = cat(1,repmat({'T'},[1 length(contrast.names)]));
@@ -138,6 +225,7 @@ par.run = 1;
 par.display = 0;
 
 par.sessrep = 'repl';
+% par.sessrep = 'none';
 
 par.delete_previous = 1;
 
