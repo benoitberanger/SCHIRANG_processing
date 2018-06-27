@@ -120,7 +120,6 @@ for subj = 1 : length(e)
 end
 
 
-return
 
 %% Job define model
 
@@ -130,13 +129,13 @@ par.run = 1;
 par.TR = 1.6;
 par.file_reg = '^run\d+_medn_afw';
 par.rp = 1;
-job_first_level_specify_modulator(dir_func,model_dir,ONSETS,par)
+% job_first_level_specify_modulator(dir_func,model_dir,ONSETS,par)
 
 
 %% Estimate
 
 fspm = e.addModel(model_name,model_name);
-job_first_level_estimate(fspm,par)
+% job_first_level_estimate(fspm,par)
 
 
 %% Contrast : definition
@@ -145,16 +144,19 @@ names = {ONSETS{subj}{run}.name}';
 
 Jitter  = [ 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ];
 Blank   = [ 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 ];
+
 u_m20   = [ 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 ];
 u_m10   = [ 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 ];
 u_0     = [ 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 ];
 u_p10   = [ 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 ];
 u_p20   = [ 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 ];
+
 k_m20   = [ 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 ];
 k_m10   = [ 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 ];
 k_0     = [ 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 ];
 k_p10   = [ 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 ];
 k_p20   = [ 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 ];
+
 Answer  = [ 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 ];
 Yes     = [ 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ];
 No      = [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 ];
@@ -185,6 +187,16 @@ contrast.names = {
 'Known   : increase activity with Value' 
 'Known   : decrease activity with Value' 
 
+'k_m20-k_0 '
+'k_m10-k_0 '
+'k_0-k_p10 '
+'k_0-k_p20 '
+
+'u_m20-u_0 '
+'u_m10-u_0 '
+'u_0-u_p10 '
+'u_0-u_p20 '
+
 }';
 
 contrast.values = {
@@ -213,6 +225,16 @@ u_m20 + u_m10 + u_0 + u_p10 + u_p20  +  k_m20 + k_m10 + k_0 + k_p10 + k_p20
 ( -2*k_m20 -1*k_m10 +0*k_0 +1*k_p10 +2*k_p20 )
 ( -2*k_p20 -1*k_p10 +0*k_0 +1*k_m10 +2*k_m20 )
 
+k_m20-k_0 
+k_m10-k_0 
+k_0-k_p10 
+k_0-k_p20 
+
+u_m20-u_0
+u_m10-u_0
+u_0-u_p10
+u_0-u_p20
+
 }';
 
 
@@ -224,7 +246,7 @@ contrast.types = cat(1,repmat({'T'},[1 length(contrast.names)]));
 par.run = 1;
 par.display = 0;
 
-par.sessrep = 'repl';
+par.sessrep = 'both';
 % par.sessrep = 'none';
 
 par.delete_previous = 1;
